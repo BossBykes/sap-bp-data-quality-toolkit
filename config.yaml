@@ -1,0 +1,25 @@
+required_fields:
+  - bp_id
+  - bp_type
+  - name
+  - country
+  - city
+
+allowed_bp_types: ["PERSON", "COMPANY"]
+
+country_rules:
+  allowed: ["DE", "NG", "NL", "BE", "FR", "GB", "US"]
+  uppercase: true
+
+email_rules:
+  enabled: true
+
+phone_rules:
+  enabled: true
+  min_digits: 7
+
+dedup_rules:
+  exact_keys: ["name", "city", "country"]
+  fuzzy_enabled: true
+  fuzzy_threshold: 90
+  fuzzy_keys: ["name", "city"]
