@@ -7,6 +7,7 @@ from sap_bp_dq.validators import validate_df
 from sap_bp_dq.dedup import find_exact_duplicates, find_fuzzy_duplicates
 from sap_bp_dq.report import render_report
 
+
 def basic_cleaning(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     out = df.copy()
 
@@ -27,6 +28,7 @@ def basic_cleaning(df: pd.DataFrame, config: dict) -> pd.DataFrame:
         out["phone"] = out["phone"].astype(str).str.replace(r"\s+", "", regex=True)
 
     return out
+
 
 def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
     config = load_config(config_path)
@@ -50,6 +52,13 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
     exact_dups = find_exact_duplicates(cleaned, exact_keys)
     logger.info(f"Exact-duplicate rows: {len(exact_dups)}")
 
+    # Add readable fields to the duplicates table for the report
+    exact_dups_preview = exact_dups.merge(
+        cleaned[["bp_id", "name", "city", "country"]],
+        on="bp_id",
+        how="left",
+    )
+
     fuzzy_pairs = pd.DataFrame()
     dedup_cfg = config.get("dedup_rules", {})
     if dedup_cfg.get("fuzzy_enabled", True):
@@ -71,7 +80,7 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         out_path=report_html,
         total_rows=len(cleaned),
         issues=issues,
-        exact_dups=exact_dups,
+        exact_dups=exact_dups_preview,
         fuzzy_pairs=fuzzy_pairs,
     )
 
