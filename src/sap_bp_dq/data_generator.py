@@ -1,39 +1,69 @@
 from __future__ import annotations
 from pathlib import Path
 import random
+import string
 import pandas as pd
 
-def generate_sample_data(rows: int, out_path: Path, seed: int = 42) -> None:
-    random.seed(seed)
 
-    names = ["RWE AG", "Bosch", "Siemens", "Chibuike Ikechukwu", "Matthew Ikechukwu", "Anna Müller", "John Doe"]
-    cities = ["Essen", "Dortmund", "Berlin", "Lagos", "Munich", "Hamburg"]
-    countries = ["DE", "DE", "DE", "NG", "DE", "NL", "FR"]
+def _random_person_name(rng: random.Random) -> str:
+    first = [
+        "Anna", "John", "Mary", "David", "Fatima", "Lukas", "Noah", "Emma",
+        "Paul", "Lea", "Mina", "Sam", "Ibrahim", "Sofia", "Klara", "Ben"
+    ]
+    last = [
+        "Müller", "Schmidt", "Weber", "Fischer", "Wagner", "Becker", "Hoffmann",
+        "Koch", "Richter", "Klein", "Wolf", "Neumann", "Schwarz", "Ikechukwu"
+    ]
+    return f"{rng.choice(first)} {rng.choice(last)}"
+
+
+def _random_company_name(rng: random.Random) -> str:
+    stems = [
+        "RWE", "E.ON", "BASF", "Bosch", "Siemens", "thyssenkrupp", "Henkel",
+        "Evonik", "Continental", "Infineon", "SAP", "Deutsche Bahn"
+    ]
+    suffixes = ["AG", "GmbH", "SE", "KG", "Group", "Holding"]
+    extra = ["Energy", "Trading", "Solutions", "Industries", "Services", "Logistics"]
+    # Add variety so we don't constantly repeat the same exact name
+    tag = "".join(rng.choices(string.ascii_uppercase, k=2))
+    return f"{rng.choice(stems)} {rng.choice(extra)} {tag} {rng.choice(suffixes)}"
+
+
+def generate_sample_data(rows: int, out_path: Path, seed: int = 42) -> None:
+    rng = random.Random(seed)
+
+    cities = [
+        "Essen", "Dortmund", "Berlin", "Hamburg", "Munich", "Cologne", "Frankfurt",
+        "Düsseldorf", "Stuttgart", "Leipzig", "Bremen", "Hanover", "Nuremberg"
+    ]
+    countries = ["DE", "NL", "BE", "FR", "GB", "US", "NG"]
 
     data = []
     for i in range(rows):
-        bp_type = random.choice(["PERSON", "COMPANY"])
-        name = random.choice(names)
+        bp_type = rng.choice(["PERSON", "COMPANY"])
+
+        if bp_type == "PERSON":
+            name = _random_person_name(rng)
+            email = f"user{i}@example.com"
+            if rng.random() < 0.07:
+                email = "bad-email"
+        else:
+            name = _random_company_name(rng)
+            email = None  # many company master data records may not have a direct email
 
         # Intentionally inject some messy data
-        if random.random() < 0.08:
+        if rng.random() < 0.08:
             name = name + "  "  # trailing spaces
 
-        email = None
-        if bp_type == "PERSON":
-            email = "user{}@example.com".format(i)
-            if random.random() < 0.07:
-                email = "bad-email"  # invalid email sometimes
-
-        phone = "0{}{}".format(random.randint(100, 999), random.randint(100000, 999999))
-        if random.random() < 0.05:
+        phone = f"0{rng.randint(100, 999)}{rng.randint(100000, 999999)}"
+        if rng.random() < 0.05:
             phone = "12"  # too short
 
-        country = random.choice(countries)
-        city = random.choice(cities)
+        country = rng.choice(countries)
+        city = rng.choice(cities)
 
         # Missing fields sometimes
-        if random.random() < 0.06:
+        if rng.random() < 0.06:
             city = None
 
         data.append(
@@ -48,12 +78,24 @@ def generate_sample_data(rows: int, out_path: Path, seed: int = 42) -> None:
             }
         )
 
-    # Inject duplicates
-    if rows >= 10:
-        data[3]["name"] = "RWE AG"
-        data[4]["name"] = "RWE  AG"  # fuzzy duplicate
-        data[4]["city"] = data[3]["city"]
-        data[4]["country"] = data[3]["country"]
+    # Inject a small, controlled number of duplicates (realistic)
+    # Create 10 duplicates: 5 exact, 5 fuzzy
+    if rows >= 50:
+        dup_indices = rng.sample(range(0, rows), k=10)
+        base_indices = rng.sample(range(0, rows), k=10)
+
+        for k in range(10):
+            src = base_indices[k]
+            dst = dup_indices[k]
+
+            # Copy key fields so they become duplicates on name/city/country
+            data[dst]["name"] = data[src]["name"]
+            data[dst]["city"] = data[src]["city"]
+            data[dst]["country"] = data[src]["country"]
+
+            # Make half of them fuzzy by adding spacing changes
+            if k >= 5 and isinstance(data[dst]["name"], str):
+                data[dst]["name"] = data[dst]["name"].replace(" ", "  ", 1)
 
     df = pd.DataFrame(data)
     df.to_csv(out_path, index=False)
