@@ -67,6 +67,29 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         threshold = int(dedup_cfg.get("fuzzy_threshold", 90))
         fuzzy_pairs = find_fuzzy_duplicates(cleaned, fuzzy_keys, threshold=threshold)
         logger.info(f"Fuzzy duplicate pairs: {len(fuzzy_pairs)}")
+        # Add readable fields for fuzzy pairs (left/right record)
+        left = cleaned[["bp_id", "name", "city", "country"]].rename(
+            columns={
+                "bp_id": "bp_id_i",
+                "name": "name_i",
+                "city": "city_i",
+                "country": "country_i",
+            }
+        )
+        right = cleaned[["bp_id", "name", "city", "country"]].rename(
+            columns={
+                "bp_id": "bp_id_j",
+                "name": "name_j",
+                "city": "city_j",
+                "country": "country_j",
+            }
+        )
+
+        fuzzy_pairs_preview = (
+            fuzzy_pairs.merge(left, on="bp_id_i", how="left").merge(
+                right, on="bp_id_j", how="left"
+            )
+        )
 
     cleaned_csv = out_dir / "business_partners_cleaned.csv"
     issues_csv = out_dir / "issues.csv"
@@ -81,7 +104,7 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         total_rows=len(cleaned),
         issues=issues,
         exact_dups=exact_dups_preview,
-        fuzzy_pairs=fuzzy_pairs,
+        fuzzy_pairs=fuzzy_pairs_preview if not fuzzy_pairs.empty else fuzzy_pairs,
     )
 
     logger.info("Pipeline complete.")
