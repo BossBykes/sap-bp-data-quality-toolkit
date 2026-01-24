@@ -48,4 +48,16 @@ def find_fuzzy_duplicates(df: pd.DataFrame, keys: list[str], threshold: int = 90
             if score >= threshold and texts[i] and texts[j]:
                 pairs.append((i, df.at[i, "bp_id"], j, df.at[j, "bp_id"], score))
 
-    return pd.DataFrame(pairs, columns=["row_i", "bp_id_i", "row_j", "bp_id_j", "score"])
+    df = pd.DataFrame(pairs, columns=["row_i", "bp_id_i", "row_j", "bp_id_j", "score"])
+
+    def _action(score: float) -> str:
+        if score >= 97:
+            return "merge_candidate"
+        if score >= 90:
+            return "review"
+        return "ignore"
+
+    if not df.empty:
+        df["recommended_action"] = df["score"].apply(_action)
+
+    return df
