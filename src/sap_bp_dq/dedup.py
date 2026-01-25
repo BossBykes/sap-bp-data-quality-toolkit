@@ -28,7 +28,9 @@ def find_fuzzy_duplicates(df: pd.DataFrame, keys: list[str], threshold: int = 90
     Returns pairs that look similar.
     """
     if not keys:
-        return pd.DataFrame(columns=["row_i", "bp_id_i", "row_j", "bp_id_j", "score"])
+        return pd.DataFrame(
+            columns=["row_i", "bp_id_i", "row_j", "bp_id_j", "score", "recommended_action"]
+        )
 
     def row_text(i: int) -> str:
         parts = []
