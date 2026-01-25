@@ -26,6 +26,9 @@ TEMPLATE = """
   <div class="kpi"><b>Exact-dup rows:</b> {{ exact_dup_rows }}</div>
   <div class="kpi"><b>Fuzzy pairs:</b> {{ fuzzy_pairs }}</div>
 
+  <h2>Issues by severity</h2>
+  {{ severity_html | safe }}
+
   <h2>Top issue types</h2>
   {{ top_issues_html | safe }}
 
@@ -56,6 +59,12 @@ def render_report(
         .sort_values("count", ascending=False)
         .head(10)
     )
+    severity_summary = (
+        issues.groupby("severity")
+        .size()
+        .reset_index(name="count")
+        .sort_values("count", ascending=False)
+    )
 
     tpl = Template(TEMPLATE)
     html = tpl.render(
@@ -63,6 +72,7 @@ def render_report(
         total_issues=len(issues),
         exact_dup_rows=len(exact_dups),
         fuzzy_pairs=len(fuzzy_pairs),
+        severity_html=severity_summary.to_html(index=False),
         top_issues_html=top_issues.to_html(index=False),
         issues_sample_html=issues.head(25).to_html(index=False),
         exact_dups_html=exact_dups.head(25).to_html(index=False),
