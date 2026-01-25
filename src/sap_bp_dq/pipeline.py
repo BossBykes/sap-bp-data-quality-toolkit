@@ -58,6 +58,8 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         on="bp_id",
         how="left",
     )
+    if not exact_dups_preview.empty:
+        exact_dups_preview["recommended_action"] = "merge_candidate"
 
     fuzzy_pairs = pd.DataFrame()
     dedup_cfg = config.get("dedup_rules", {})
