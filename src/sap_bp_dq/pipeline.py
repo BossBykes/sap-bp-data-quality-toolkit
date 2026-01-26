@@ -10,12 +10,13 @@ from sap_bp_dq.report import render_report
 
 def basic_cleaning(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     out = df.copy()
+    # common CSV artifacts that should be treated as missing
+    out = out.replace({"None": None, "none": None, "nan": None, "NaN": None, "NULL": None, "null": None})
 
     # trim strings
     for col in out.columns:
         if out[col].dtype == object:
-            out[col] = out[col].astype(str).where(out[col].notna(), None)
-            out[col] = out[col].astype(object)
+            out[col] = out[col].apply(lambda v: v.strip() if isinstance(v, str) else v)
 
     # normalize some fields
     if "name" in out.columns:
