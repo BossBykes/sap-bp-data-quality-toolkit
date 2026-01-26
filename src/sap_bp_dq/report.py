@@ -59,6 +59,12 @@ def render_report(
         .sort_values("count", ascending=False)
         .head(10)
     )
+    examples = (
+        issues.groupby(["issue", "severity"])["bp_id"]
+        .apply(lambda s: ", ".join(s.astype(str).head(3)))
+        .reset_index(name="example_bp_ids")
+    )
+    top_issues = top_issues.merge(examples, on=["issue", "severity"], how="left")
     severity_summary = (
         issues.groupby("severity")
         .size()
