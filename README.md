@@ -135,8 +135,3 @@ pytest -q
 
 - Fuzzy matching is implemented as a simple approach suitable for small-to-medium datasets.
 - For very large datasets, you would typically add blocking/indexing strategies to reduce comparisons.
-
-## Author
-
-Chibuike Matthew Ikechukwu  
-GitHub: https://github.com/BossBykes
