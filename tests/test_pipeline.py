@@ -8,13 +8,25 @@ from sap_bp_dq.pipeline import run_pipeline
 from sap_bp_dq.report import render_report
 
 
-EXPECTED_WORKBOOK_SHEETS = {
+EXPECTED_WORKBOOK_SHEETS = [
     "Summary",
     "Cleaned Records",
     "Issues",
     "Exact Duplicates",
     "Fuzzy Duplicates",
+]
+
+SUMMARY_KPI_LABELS = {
+    "total_input_rows",
+    "total_issues",
+    "exact_duplicate_rows",
+    "fuzzy_duplicate_candidates",
 }
+
+
+def _summary_metrics(workbook) -> dict[str, object]:
+    summary = workbook["Summary"]
+    return {row[0].value: row[1].value for row in summary.iter_rows(min_row=2)}
 
 
 def _write_config(path: Path, *, fuzzy_enabled: bool = True) -> None:
@@ -93,7 +105,7 @@ def test_pipeline_runs_with_fuzzy_disabled(tmp_path):
     assert "No fuzzy duplicate pairs found." in report_html
 
     workbook = load_workbook(results["excel_report"], read_only=True)
-    assert set(workbook.sheetnames) == EXPECTED_WORKBOOK_SHEETS
+    assert workbook.sheetnames == EXPECTED_WORKBOOK_SHEETS
 
 
 def test_small_full_pipeline_run(tmp_path):
@@ -134,6 +146,21 @@ def test_small_full_pipeline_run(tmp_path):
     assert Path(results["report_html"]).exists()
     assert Path(results["excel_report"]).exists()
 
+    workbook = load_workbook(results["excel_report"], read_only=True)
+    assert workbook.sheetnames == EXPECTED_WORKBOOK_SHEETS
+
+    metrics = _summary_metrics(workbook)
+    assert SUMMARY_KPI_LABELS.issubset(metrics)
+    assert any(label.startswith("generated_at") for label in metrics)
+
+    severity_metrics = {
+        label: value
+        for label, value in metrics.items()
+        if isinstance(label, str) and label.startswith("issue_count_")
+    }
+    assert severity_metrics
+    assert any(value > 0 for value in severity_metrics.values())
+
 
 def test_pipeline_creates_excel_workbook_with_expected_sheets(tmp_path):
     input_path = tmp_path / "business_partners.csv"
@@ -167,10 +194,12 @@ def test_pipeline_creates_excel_workbook_with_expected_sheets(tmp_path):
     results = run_pipeline(input_path=input_path, config_path=config_path, out_dir=out_dir)
 
     workbook = load_workbook(results["excel_report"], read_only=True)
-    assert set(workbook.sheetnames) == EXPECTED_WORKBOOK_SHEETS
+    assert workbook.sheetnames == EXPECTED_WORKBOOK_SHEETS
 
-    summary = workbook["Summary"]
-    metrics = {row[0].value: row[1].value for row in summary.iter_rows(min_row=2)}
+    metrics = _summary_metrics(workbook)
+    assert SUMMARY_KPI_LABELS.issubset(metrics)
     assert metrics["total_input_rows"] == 2
+    assert metrics["total_issues"] == 0
     assert metrics["exact_duplicate_rows"] == 2
-    assert "generated_at_utc" in metrics
+    assert metrics["fuzzy_duplicate_candidates"] == 1
+    assert any(label.startswith("generated_at") for label in metrics)
