@@ -5,6 +5,7 @@ import pandas as pd
 from sap_bp_dq.utils import load_config, setup_logger
 from sap_bp_dq.validators import validate_df
 from sap_bp_dq.dedup import find_exact_duplicates, find_fuzzy_duplicates
+from sap_bp_dq.excel import export_excel_report
 from sap_bp_dq.report import render_report
 
 
@@ -134,6 +135,7 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
     cleaned_csv = out_dir / "business_partners_cleaned.csv"
     issues_csv = out_dir / "issues.csv"
     report_html = out_dir / "report.html"
+    excel_report = out_dir / "data_quality_report.xlsx"
 
     logger.info(f"Writing outputs -> {out_dir}")
     cleaned.to_csv(cleaned_csv, index=False)
@@ -146,11 +148,20 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         exact_dups=exact_dups_preview,
         fuzzy_pairs=fuzzy_pairs_preview,
     )
+    export_excel_report(
+        out_path=excel_report,
+        total_rows=len(cleaned),
+        cleaned=cleaned,
+        issues=issues,
+        exact_dups=exact_dups_preview,
+        fuzzy_pairs=fuzzy_pairs_preview,
+    )
 
     logger.info("Pipeline complete.")
     return {
         "cleaned_csv": str(cleaned_csv),
         "issues_csv": str(issues_csv),
         "report_html": str(report_html),
+        "excel_report": str(excel_report),
         "log_file": str(log_file),
     }

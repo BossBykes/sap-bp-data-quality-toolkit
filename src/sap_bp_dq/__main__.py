@@ -35,6 +35,7 @@ def main():
         print("Done.")
         print(f"Cleaned CSV: {results['cleaned_csv']}")
         print(f"Report HTML : {results['report_html']}")
+        print(f"Excel file  : {results['excel_report']}")
         print(f"Log file    : {results['log_file']}")
 
 if __name__ == "__main__":

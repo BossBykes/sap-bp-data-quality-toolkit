@@ -11,7 +11,7 @@ The toolkit provides a small command-line pipeline that can generate sample data
 - Validate required fields, Business Partner type, email format, phone length, and allowed countries.
 - Detect exact duplicate groups from configurable keys.
 - Detect fuzzy duplicate candidates with configurable match keys and thresholds.
-- Write cleaned data, issue records, an HTML report, and a run log.
+- Write cleaned data, issue records, an HTML report, an Excel workbook, and a run log.
 
 ## Project Structure
 
@@ -25,6 +25,7 @@ The toolkit provides a small command-line pipeline that can generate sample data
 |       |-- __main__.py
 |       |-- data_generator.py
 |       |-- dedup.py
+|       |-- excel.py
 |       |-- pipeline.py
 |       |-- report.py
 |       |-- utils.py
@@ -71,10 +72,19 @@ The default run command writes:
 data/output/business_partners_cleaned.csv
 data/output/issues.csv
 data/output/report.html
+data/output/data_quality_report.xlsx
 data/output/run.log
 ```
 
-`business_partners_cleaned.csv` contains cleaned input records. `issues.csv` contains validation findings. `report.html` summarizes issues and duplicate candidates for review. `run.log` records the pipeline steps.
+`business_partners_cleaned.csv` contains cleaned input records. `issues.csv` contains validation findings. `report.html` summarizes issues and duplicate candidates for review. `data_quality_report.xlsx` provides a workbook for spreadsheet review. `run.log` records the pipeline steps.
+
+The Excel workbook includes these sheets:
+
+- Summary
+- Cleaned Records
+- Issues
+- Exact Duplicates
+- Fuzzy Duplicates
 
 ## Configuration
 
