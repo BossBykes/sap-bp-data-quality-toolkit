@@ -1,137 +1,104 @@
 # SAP BP Data Quality Toolkit
 
-A small, practical Python toolkit for validating and cleaning Business Partner-style master data (CSV), detecting duplicates (exact and fuzzy), and generating a simple HTML report. It is designed as a lightweight, configurable pipeline that helps turn messy inputs into clean, reviewable outputs.
+SAP BP Data Quality Toolkit is a portfolio/MVP Python project for validating and reporting on Business Partner-style master data in CSV format. It is not an official SAP product and is not affiliated with SAP.
 
-## What it does
+The toolkit provides a small command-line pipeline that can generate sample data, clean common CSV artifacts, validate configurable data quality rules, identify duplicate candidates, and render review outputs.
 
-- Loads Business Partner-style CSV data
-- Runs basic cleaning (trim/normalize fields)
-- Validates records using configurable rules (YAML)
-- Detects duplicates
-  - Exact duplicates using configurable key columns
-  - Fuzzy duplicates using similarity scoring and a threshold
-- Writes outputs to `data/output/`
-  - Cleaned CSV
-  - Issues CSV
-  - HTML report
-  - Run log
+## Features
 
-## Why it exists
+- Generate synthetic Business Partner sample data.
+- Clean string fields and normalize selected values.
+- Validate required fields, Business Partner type, email format, phone length, and allowed countries.
+- Detect exact duplicate groups from configurable keys.
+- Detect fuzzy duplicate candidates with configurable match keys and thresholds.
+- Write cleaned data, issue records, an HTML report, and a run log.
 
-Master-data quality problems (missing fields, inconsistent formats, duplicates) create real operational risk and manual rework. This toolkit focuses on a clear workflow: validate, surface issues, propose actions, and provide a report that is easy to review.
-
-## Project structure
+## Project Structure
 
 ```text
-SAP-bp_Data-quality-toolkit/
-  src/
-    sap_bp_dq/
-      __init__.py
-      __main__.py          # CLI entrypoint: python -m sap_bp_dq
-      pipeline.py          # Orchestrates the workflow
-      validators.py        # Validation rules
-      dedup.py             # Exact + fuzzy duplicate detection
-      report.py            # HTML report rendering
-      utils.py             # Config + logging helpers
-      data_generator.py    # Synthetic data generator for testing/demo
-  data/
-    raw/
-    output/
-  config/
-    config.yaml
-  tests/
-  requirements.txt
-  pyproject.toml
+.
+|-- config.yaml
+|-- pyproject.toml
+|-- requirements.txt
+|-- src/
+|   `-- sap_bp_dq/
+|       |-- __main__.py
+|       |-- data_generator.py
+|       |-- dedup.py
+|       |-- pipeline.py
+|       |-- report.py
+|       |-- utils.py
+|       `-- validators.py
+`-- tests/
+    |-- test_dedup.py
+    |-- test_pipeline.py
+    `-- test_validators.py
 ```
 
-## Requirements
+## Install
 
-- Python 3.10+ recommended
-- Tested on Linux/Ubuntu
-
-## Quick start (local)
-
-1) Create and activate a virtual environment:
+From the project root:
 
 ```bash
 python3 -m venv ~/venvs/sap-bp-dq
 source ~/venvs/sap-bp-dq/bin/activate
+python -m pip install -e .
 ```
 
-2) Install dependencies:
+For development and tests, install the test dependency if it is not already available:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install pytest
 ```
 
-3) Generate sample data:
+## Generate Sample Data
 
 ```bash
-python3 -m sap_bp_dq generate --rows 200
+sap-bp-dq generate --rows 200 --out data/raw/business_partners.csv
 ```
 
-4) Run the pipeline:
+## Run The Pipeline
 
 ```bash
-python3 -m sap_bp_dq run --input data/raw/business_partners.csv
+sap-bp-dq run --input data/raw/business_partners.csv --config config.yaml --outdir data/output
 ```
 
-Outputs are written to:
+## Output Files
+
+The default run command writes:
 
 ```text
-data/output/
-  business_partners_cleaned.csv
-  issues.csv
-  report.html
-  run.log
+data/output/business_partners_cleaned.csv
+data/output/issues.csv
+data/output/report.html
+data/output/run.log
 ```
 
-Open the report in a browser:
-
-```bash
-xdg-open data/output/report.html
-```
-
-## CLI usage
-
-Help:
-
-```bash
-python3 -m sap_bp_dq -h
-```
-
-Generate:
-
-```bash
-python3 -m sap_bp_dq generate --rows 500 --seed 42
-```
-
-Run:
-
-```bash
-python3 -m sap_bp_dq run --input path/to/your.csv --config config/config.yaml --out data/output
-```
+`business_partners_cleaned.csv` contains cleaned input records. `issues.csv` contains validation findings. `report.html` summarizes issues and duplicate candidates for review. `run.log` records the pipeline steps.
 
 ## Configuration
 
-Rules are configured via YAML (default: `config/config.yaml`). Typical settings include:
+`config.yaml` controls the main data quality rules:
 
-- Required fields
-- Allowed values (e.g., country codes)
-- Email/phone format checks
-- Duplicate detection keys and thresholds
+- required fields
+- allowed Business Partner types
+- country normalization and allowed country codes
+- email and phone validation
+- exact duplicate keys
+- fuzzy duplicate keys and score threshold
 
-Adjust the config to match your data model and quality expectations.
+Adjust this file to match the expected input schema and review policy for a dataset.
 
-## Testing
-
-Run tests with:
+## Tests
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
-## Notes
+## Current Limitations
 
-- Fuzzy matching is implemented as a simple approach suitable for small-to-medium datasets.
-- For very large datasets, you would typically add blocking/indexing strategies to reduce comparisons.
+- The project is an MVP intended for portfolio review and local experimentation.
+- Input support is CSV-only.
+- Fuzzy matching uses an O(n^2) comparison strategy, so large datasets need blocking or indexing.
+- Duplicate recommendations are review aids, not automatic merge decisions.
+- The validation rules cover common quality checks but do not model a full SAP Business Partner schema.
