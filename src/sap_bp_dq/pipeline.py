@@ -8,31 +8,54 @@ from sap_bp_dq.dedup import find_exact_duplicates, find_fuzzy_duplicates
 from sap_bp_dq.report import render_report
 
 
+MISSING_STRINGS = {"", "none", "nan", "null"}
+
+
+def _clean_string(value):
+    if not isinstance(value, str):
+        return value
+
+    stripped = value.strip()
+    if stripped.lower() in MISSING_STRINGS:
+        return pd.NA
+    return stripped
+
+
+def _remove_whitespace(value):
+    if not isinstance(value, str):
+        return value
+    return "".join(value.split())
+
+
 def basic_cleaning(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     out = df.copy()
-    # common CSV artifacts that should be treated as missing
-    out = out.replace({"None": None, "none": None, "nan": None, "NaN": None, "NULL": None, "null": None})
 
-    # trim strings
+    # Trim strings and keep common CSV missing-value artifacts as missing values.
     for col in out.columns:
-        if out[col].dtype == object:
-            out[col] = out[col].apply(lambda v: v.strip() if isinstance(v, str) else v)
+        out[col] = out[col].apply(_clean_string)
 
     # normalize some fields
     if "name" in out.columns:
-        out["name"] = out["name"].astype(str).str.strip()
+        out["name"] = out["name"].apply(_clean_string)
 
     if "country" in out.columns and config.get("country_rules", {}).get("uppercase", True):
-        out["country"] = out["country"].astype(str).str.strip().str.upper()
+        out["country"] = out["country"].apply(
+            lambda v: v.upper() if isinstance(v, str) else v
+        )
 
     if "phone" in out.columns:
-        out["phone"] = out["phone"].astype(str).str.replace(r"\s+", "", regex=True)
+        out["phone"] = out["phone"].apply(_remove_whitespace)
 
     return out
 
 
+def _available_preview_columns(df: pd.DataFrame) -> list[str]:
+    return [col for col in ["bp_id", "name", "city", "country"] if col in df.columns]
+
+
 def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
     config = load_config(config_path)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     log_file = out_dir / "run.log"
     logger = setup_logger(log_file)
@@ -54,45 +77,59 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
     logger.info(f"Exact-duplicate rows: {len(exact_dups)}")
 
     # Add readable fields to the duplicates table for the report
-    exact_dups_preview = exact_dups.merge(
-        cleaned[["bp_id", "name", "city", "country"]],
-        on="bp_id",
-        how="left",
-    )
+    preview_cols = _available_preview_columns(cleaned)
+    if not exact_dups.empty and "bp_id" in preview_cols:
+        exact_dups_preview = exact_dups.merge(
+            cleaned[preview_cols],
+            on="bp_id",
+            how="left",
+        )
+    else:
+        exact_dups_preview = exact_dups.copy()
     if not exact_dups_preview.empty:
         exact_dups_preview["recommended_action"] = "merge_candidate"
 
     fuzzy_pairs = pd.DataFrame()
+    fuzzy_pairs_preview = fuzzy_pairs
     dedup_cfg = config.get("dedup_rules", {})
     if dedup_cfg.get("fuzzy_enabled", True):
         logger.info("Finding fuzzy duplicates...")
         fuzzy_keys = dedup_cfg.get("fuzzy_keys", [])
         threshold = int(dedup_cfg.get("fuzzy_threshold", 90))
-        fuzzy_pairs = find_fuzzy_duplicates(cleaned, fuzzy_keys, threshold=threshold)
+        allow_cross_country = bool(dedup_cfg.get("fuzzy_allow_cross_country", False))
+        fuzzy_pairs = find_fuzzy_duplicates(
+            cleaned,
+            fuzzy_keys,
+            threshold=threshold,
+            allow_cross_country=allow_cross_country,
+        )
         logger.info(f"Fuzzy duplicate pairs: {len(fuzzy_pairs)}")
         # Add readable fields for fuzzy pairs (left/right record)
-        left = cleaned[["bp_id", "name", "city", "country"]].rename(
-            columns={
-                "bp_id": "bp_id_i",
-                "name": "name_i",
-                "city": "city_i",
-                "country": "country_i",
-            }
-        )
-        right = cleaned[["bp_id", "name", "city", "country"]].rename(
-            columns={
-                "bp_id": "bp_id_j",
-                "name": "name_j",
-                "city": "city_j",
-                "country": "country_j",
-            }
-        )
-
-        fuzzy_pairs_preview = (
-            fuzzy_pairs.merge(left, on="bp_id_i", how="left").merge(
-                right, on="bp_id_j", how="left"
+        if not fuzzy_pairs.empty and "bp_id" in preview_cols:
+            left = cleaned[preview_cols].rename(
+                columns={
+                    "bp_id": "bp_id_i",
+                    "name": "name_i",
+                    "city": "city_i",
+                    "country": "country_i",
+                }
             )
-        )
+            right = cleaned[preview_cols].rename(
+                columns={
+                    "bp_id": "bp_id_j",
+                    "name": "name_j",
+                    "city": "city_j",
+                    "country": "country_j",
+                }
+            )
+
+            fuzzy_pairs_preview = (
+                fuzzy_pairs.merge(left, on="bp_id_i", how="left").merge(
+                    right, on="bp_id_j", how="left"
+                )
+            )
+        else:
+            fuzzy_pairs_preview = fuzzy_pairs
 
     cleaned_csv = out_dir / "business_partners_cleaned.csv"
     issues_csv = out_dir / "issues.csv"
@@ -107,7 +144,7 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         total_rows=len(cleaned),
         issues=issues,
         exact_dups=exact_dups_preview,
-        fuzzy_pairs=fuzzy_pairs_preview if not fuzzy_pairs.empty else fuzzy_pairs,
+        fuzzy_pairs=fuzzy_pairs_preview,
     )
 
     logger.info("Pipeline complete.")

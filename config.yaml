@@ -23,3 +23,4 @@ dedup_rules:
   fuzzy_enabled: true
   fuzzy_threshold: 90
   fuzzy_keys: ["name", "city"]
+  fuzzy_allow_cross_country: false
