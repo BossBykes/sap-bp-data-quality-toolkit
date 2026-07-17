@@ -107,6 +107,10 @@ def test_pipeline_runs_with_fuzzy_disabled(tmp_path):
     workbook = load_workbook(results["excel_report"], read_only=True)
     assert workbook.sheetnames == EXPECTED_WORKBOOK_SHEETS
 
+    metrics = _summary_metrics(workbook)
+    assert SUMMARY_KPI_LABELS.issubset(metrics)
+    assert any(label.startswith("generated_at") for label in metrics)
+
 
 def test_small_full_pipeline_run(tmp_path):
     input_path = tmp_path / "business_partners.csv"
