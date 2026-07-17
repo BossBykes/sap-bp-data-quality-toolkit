@@ -207,3 +207,32 @@ def test_pipeline_creates_excel_workbook_with_expected_sheets(tmp_path):
     assert metrics["exact_duplicate_rows"] == 2
     assert metrics["fuzzy_duplicate_candidates"] == 1
     assert any(label.startswith("generated_at") for label in metrics)
+
+
+def test_sample_example_file_runs_successfully():
+    sample_path = Path("examples/sample_business_partners.csv")
+    assert sample_path.exists(), "Example sample CSV must exist"
+
+    out_dir = Path("data/output/example_test_run")
+    if out_dir.exists():
+        for child in out_dir.iterdir():
+            child.unlink()
+        out_dir.rmdir()
+
+    results = run_pipeline(input_path=sample_path, config_path=Path("config.yaml"), out_dir=out_dir)
+
+    assert Path(results["cleaned_csv"]).exists()
+    assert Path(results["issues_csv"]).exists()
+    assert Path(results["report_html"]).exists()
+    assert Path(results["excel_report"]).exists()
+    assert Path(results["log_file"]).exists()
+
+    assert out_dir.joinpath("business_partners_cleaned.csv").exists()
+    assert out_dir.joinpath("issues.csv").exists()
+    assert out_dir.joinpath("report.html").exists()
+    assert out_dir.joinpath("data_quality_report.xlsx").exists()
+
+    # cleanup created outputs
+    for path in out_dir.iterdir():
+        path.unlink()
+    out_dir.rmdir()

@@ -1,0 +1,14 @@
+bp_id,bp_type,name,email,phone,country,city
+BP100,COMPANY,Acme GmbH,info@acme.com,0123456789,DE,Berlin
+BP101,COMPANY,Acme GmbH,contact@acme.com,0123456789,DE,Berlin
+BP102,COMPANY,Acme GMBH,contact@acme.com,0123456789,DE,Berlin
+BP103,PERSON,Anna Keller,anna.keller@example.de,01511234567,DE,Munich
+BP104,PERSON,Heike Bauer,heike.bauer@example.de,01711234567,DE,
+BP105,PERSON,Max Mustermann,invalid-email,012345,DE,Berlin
+BP106,COMPANY,Global Trade GmbH,info@globaltrade.com,00491234567,XX,Hamburg
+BP107,COMPANY,Sapient Solution GmbH,sapient@example.com,0301234567,DE,Hamburg
+BP108,COMPANY,Sapient Solutions GmbH,sapient2@example.com,0301234567,DE,Hamburg
+BP109,COMPANY,North Europe BV,info@north-europe.nl,02012345678,NL,Amsterdam
+BP110,PERSON,Lisa Becker,lisa.becker@example.com,01711234567,DE,Berlin
+BP111,PERSON,John Doe,john.doe@example.com,01221234567,US,New York
+BP112,COMPANY,ACME GMBH,info@acme.com,0123456789,DE,Berlin

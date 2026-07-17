@@ -64,6 +64,26 @@ sap-bp-dq generate --rows 200 --out data/raw/business_partners.csv
 sap-bp-dq run --input data/raw/business_partners.csv --config config.yaml --outdir data/output
 ```
 
+## Example workflow
+
+To run the included example dataset:
+
+```bash
+sap-bp-dq run --input examples/sample_business_partners.csv --config config.yaml --outdir data/output/example_run
+```
+
+The command writes these output files in `data/output/example_run`:
+
+```text
+data/output/example_run/business_partners_cleaned.csv
+data/output/example_run/issues.csv
+data/output/example_run/report.html
+data/output/example_run/data_quality_report.xlsx
+data/output/example_run/run.log
+```
+
+Generated output files are not checked into Git.
+
 ## Output Files
 
 The default run command writes:
