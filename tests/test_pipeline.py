@@ -59,9 +59,14 @@ def test_report_renders_empty_sections(tmp_path):
     )
 
     html = out_path.read_text(encoding="utf-8")
-    assert "No validation issues found." in html
+    assert "Data Quality Report" in html
+    assert "Key performance indicators" in html
+    assert "Issue summary" in html
+    assert "No validation issues present." in html
     assert "No exact duplicate rows found." in html
     assert "No fuzzy duplicate pairs found." in html
+    assert "http://" not in html
+    assert "https://" not in html
 
 
 def test_pipeline_runs_with_fuzzy_disabled(tmp_path):
@@ -231,6 +236,15 @@ def test_sample_example_file_runs_successfully():
     assert out_dir.joinpath("issues.csv").exists()
     assert out_dir.joinpath("report.html").exists()
     assert out_dir.joinpath("data_quality_report.xlsx").exists()
+
+    html = out_dir.joinpath("report.html").read_text(encoding="utf-8")
+    assert "Data Quality Report" in html
+    assert "Total input rows" in html
+    assert "Exact duplicate rows" in html
+    assert "Fuzzy duplicate candidates" in html
+    assert "Recommended next actions" in html
+    assert "http://" not in html
+    assert "https://" not in html
 
     # cleanup created outputs
     for path in out_dir.iterdir():

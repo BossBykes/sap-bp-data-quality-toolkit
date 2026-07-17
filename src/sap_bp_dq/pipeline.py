@@ -147,6 +147,7 @@ def run_pipeline(input_path: Path, config_path: Path, out_dir: Path) -> dict:
         issues=issues,
         exact_dups=exact_dups_preview,
         fuzzy_pairs=fuzzy_pairs_preview,
+        source_input=input_path,
     )
     export_excel_report(
         out_path=excel_report,

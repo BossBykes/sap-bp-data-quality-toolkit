@@ -82,6 +82,8 @@ data/output/example_run/data_quality_report.xlsx
 data/output/example_run/run.log
 ```
 
+The generated `report.html` is a self-contained dashboard-style HTML report that can be opened offline.
+
 Generated output files are not checked into Git.
 
 ## Output Files
